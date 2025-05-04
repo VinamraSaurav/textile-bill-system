@@ -1,0 +1,136 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Address {
+  id        String   @id @default(uuid())
+  street    String?
+  city      String?
+  post      String?
+  district  String?
+  state     String
+  pincode   String
+  st_code   String?
+
+  suppliers Supplier[]
+  parties   Party[]
+
+  createdAt DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Phone {
+  id      String   @id @default(uuid())
+  office  String[]
+  mobile  String[]
+
+  suppliers Supplier[]
+  parties   Party[]
+
+  createdAt DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Supplier {
+  id        String   @id @default(uuid())
+  name      String
+  gstin     String
+
+  address    Address  @relation(fields: [addressId], references: [id])
+  addressId  String
+
+  phone      Phone    @relation(fields: [phoneId], references: [id])
+  phoneId    String
+
+  bills      Bill[]   @relation("SupplierBills")
+
+  createdAt DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Party {
+  id        String   @id @default(uuid())
+  name      String
+  gstin     String
+
+  address    Address  @relation(fields: [addressId], references: [id])
+  addressId  String
+
+  phone      Phone    @relation(fields: [phoneId], references: [id])
+  phoneId    String
+
+  bills      Bill[]   @relation("PartyBills")
+
+  createdAt DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model BillItem {
+  id       String   @id @default(uuid())
+  name     String
+  hsn      String
+  quantity Int
+  rate     Float
+  amount   Float
+
+  bill     Bill     @relation(fields: [billId], references: [id])
+  billId   String
+
+  createdAt DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Bill {
+  id                  String     @id @default(uuid())
+  bill_number         String
+  bill_date           DateTime
+  location            String
+  total_billed_amount Float
+  payment_status      String     // "paid" | "unpaid"
+
+  supplier            Supplier   @relation("SupplierBills", fields: [supplierId], references: [id])
+  supplierId          String
+
+  party               Party      @relation("PartyBills", fields: [partyId], references: [id])
+  partyId             String
+
+  items               BillItem[]
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+
+}
+
+enum Role {
+  ADMIN
+  STAFF
+}
+
+model User {
+  id       String   @id @default(uuid())
+  name     String
+  email    String   @unique
+  password String   // Store hashed passwords only
+  role     Role     @default(STAFF)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sessions Session[]
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  sessionId String   @unique
+  expires   DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
