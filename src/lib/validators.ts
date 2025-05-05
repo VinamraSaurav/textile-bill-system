@@ -29,7 +29,7 @@ export const BillItemSchema = z.object({
 // Bill schema for validation
 export const BillSchema = z.object({
   bill_number: z.string().min(1, "Bill number is required"),
-  bill_date: z.date(),
+  bill_date: z.coerce.date(),
   location: z.string().min(1, "Location is required"),
   total_billed_amount: z.number().positive(),
   payment_status: z.enum(["paid", "unpaid"]),

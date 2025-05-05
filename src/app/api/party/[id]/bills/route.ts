@@ -3,13 +3,13 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(
     req : NextRequest,
-    { params }: { params: { id: string } }
+    { params } : { params: { id : string }}
 ){
-    const supplierId = params.id;
+    const partyId = params.id;
     try{
         const bills = await prisma.bill.findMany({
             where : {
-                supplierId : supplierId
+                partyId : partyId
             },
             include : {
                 items : true,
@@ -25,7 +25,7 @@ export async function GET(
         }, {
             status : 200
         })
-    } catch(error: any){
+    } catch(error : any){
         return NextResponse.json({
             success : false,
             message : error.message,
