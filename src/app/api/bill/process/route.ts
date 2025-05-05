@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { processBillImage } from '@/services/ocrService';
+import { processImageWithGemini } from '@/services/ocrService';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
 import { v4 as uuidv4 } from 'uuid';
+
+export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
   try {
@@ -25,14 +27,24 @@ export async function POST(req: NextRequest) {
     
     fs.writeFileSync(tempFilePath, buffer);
     
-    // Process the image
-    const result = await processBillImage(tempFilePath);
+    // Process the image directly with Gemini Vision instead of Tesseract OCR
+    const result = await processImageWithGemini(tempFilePath);
     
-    return NextResponse.json(result);
+    return NextResponse.json({
+      success: true,
+      status: 200,
+      message: 'Bill processed successfully',
+      data: result,
+    }, { status: 200 });
   } catch (error: any) {
     console.error('Bill processing error:', error);
     return NextResponse.json(
-      { error: error.message || 'Failed to process bill' },
+      {
+        success: false,
+        status: 500,
+        message: 'Failed to process bill image',
+        error: error.message,
+      },
       { status: 500 }
     );
   }
