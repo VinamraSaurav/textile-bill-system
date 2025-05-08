@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Create session
-    await createSession(user.id);
+    // await createSession(user.id);
 
     return NextResponse.json({
         success : true,

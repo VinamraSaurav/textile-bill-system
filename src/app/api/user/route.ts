@@ -34,7 +34,7 @@ export async function POST(
     req: NextRequest
 ){
     try {
-        const { name, email, password, role = 'STAFF' } = await req.json();
+        const { name, email, password, role } = await req.json();
 
         // Validate input
         const result = UserSchema.safeParse({ name, email, password, role });
@@ -73,7 +73,7 @@ export async function POST(
         });
 
         // Create session (auto login)
-        await createSession(user.id);
+        // await createSession(user.id);
 
         return NextResponse.json({
             success: true,

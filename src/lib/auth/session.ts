@@ -1,12 +1,11 @@
 import { cookies } from 'next/headers';
 import { v4 as uuidv4 } from 'uuid';
-import { prisma } from '@/lib/prisma'; // ensure prisma client exists
+import { prisma } from '@/lib/prisma';
 
 const SESSION_COOKIE = 'bill_session';
 
-const cookieStore = await cookies();
-
 export const createSession = async (userId: string) => {
+  const cookieStore = cookies(); // ✅ Don't use await
   const sessionId = uuidv4();
   const expires = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7); // 7 days
 
@@ -28,6 +27,7 @@ export const createSession = async (userId: string) => {
 };
 
 export const getSessionUser = async () => {
+  const cookieStore = cookies(); // ✅ Don't use await
   const sessionId = cookieStore.get(SESSION_COOKIE)?.value;
   if (!sessionId) return null;
 
@@ -44,6 +44,7 @@ export const getSessionUser = async () => {
 };
 
 export const deleteSession = async () => {
+  const cookieStore = cookies(); // ✅ Don't use await
   const sessionId = cookieStore.get(SESSION_COOKIE)?.value;
   if (sessionId) {
     await prisma.session.deleteMany({ where: { sessionId } });
