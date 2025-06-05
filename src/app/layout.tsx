@@ -27,7 +27,7 @@ export default function RootLayout({
           <div className="bg-gray-50">
             {/* <Navbar /> */}
             {/* <Sidebar /> */}
-            <main className="pt-16 pb-4 px-2">
+            <main className="pt-20 pb-6 px-4">
               <div className="max-w-7xl mx-auto">
                 {children}
               </div>

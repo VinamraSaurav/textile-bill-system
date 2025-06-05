@@ -14,51 +14,49 @@ export async function POST(req: NextRequest) {
 
     if (!user) {
       return NextResponse.json({
-        success : false,
-        message : "User not found",
-        status : 404
-        }, {
-        status : 404
-      }
-      );
+        success: false,
+        message: "User not found",
+        status: 404
+      }, {
+        status: 404
+      });
     }
 
     // Compare password
     const isPasswordValid = await comparePassword(password, user.password);
     if (!isPasswordValid) {
       return NextResponse.json({
-        success : false,
-        message : "Invalid password",
-        status : 401
+        success: false,
+        message: "Invalid password",
+        status: 401
       }, {
-        status : 401
+        status: 401
       });
     }
 
     // Create session
-    // await createSession(user.id);
+    const sessionId = await createSession(user.id);
 
     return NextResponse.json({
-        success : true,
-        message : 'Login successful',
-        userId: user.id,
-        role: user.role,
-        name: user.name,
-        email: user.email,
-        status : 200
-        }, {
-        status: 200
-    }
-    );
+      success: true,
+      message: 'Login successful',
+      userId: user.id,
+      role: user.role,
+      name: user.name,
+      email: user.email,
+      sessionId, // Optional: return session ID
+      status: 200
+    }, {
+      status: 200
+    });
   } catch (error) {
     console.error('Login error:', error);
     return NextResponse.json({
-        success : false,
-        message : 'Failed to login',
-        status : 500
-        }, {
-        status: 500
-    }
-    );
+      success: false,
+      message: 'Failed to login',
+      status: 500
+    }, {
+      status: 500
+    });
   }
 }

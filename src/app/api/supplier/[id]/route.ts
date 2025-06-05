@@ -45,6 +45,26 @@ export async function DELETE(
     { params }: { params: { id: string } }
 ) {
     const supplierId = params.id;
+
+    // Check if the supplier ID is valid
+    if (!supplierId) {
+        return NextResponse.json({
+            success: false,
+            message: "Supplier ID is required",
+            status: 400
+        }, { status: 400 });
+    }
+    // Before deleting supplier, check if there are any bills associated with the supplier
+    const bills = await prisma.bill.findMany({
+        where: { supplierId: supplierId }
+    });
+    if (bills.length > 0) {
+        return NextResponse.json({
+            success: false,
+            message: "Cannot delete supplier with associated bills",
+            status: 400
+        }, { status: 400 });
+    }
     try {
         const supplier = await prisma.supplier.findUnique({
             where: { id: supplierId },

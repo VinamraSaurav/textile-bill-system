@@ -41,6 +41,32 @@ export async function DELETE(
     { params } : { params: { id : string }}
 ){
     const partyId = params.id;
+    // Check if the party ID is valid
+    if(!partyId){
+        return NextResponse.json({
+            success : false,
+            message : "Party ID is required",
+            status : 400
+        }, {
+            status : 400
+        })
+    }
+    // Before deleting party, check if there are any bills associated with the party
+    const bills = await prisma.bill.findMany({
+        where : {
+            partyId : partyId
+        }
+    });
+    if(bills.length > 0){
+        return NextResponse.json({
+            success : false,
+            message : "Cannot delete party with associated bills",
+            status : 400
+        }, {
+            status : 400    
+        })
+    }
+    
     try{
         const party = await prisma.party.findUnique({
             where : {

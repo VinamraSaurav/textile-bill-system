@@ -13,7 +13,7 @@ export default function RootLayout({
         <div>
           <Navbar />
           <Sidebar />
-          <main className="pt-4">
+          <main>
             <div className="max-w-7xl mx-auto">{children}</div>
           </main>
         </div>

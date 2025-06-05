@@ -1,75 +1,140 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
-import { Plus, Search } from "lucide-react"
+import { Plus, Search, Edit, Trash2, Phone, MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Spinner } from "@/components/ui/spinner"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { toast } from "@/components/ui/use-toast"
+import { Badge } from "@/components/ui/badge"
 
-// Mock data for suppliers
-const mockSuppliers = [
-  {
-    id: "1",
-    name: "ABC Suppliers",
-    gstin: "29ABCDE1234F1Z5",
-    address: {
-      city: "Mumbai",
-      state: "Maharashtra",
-    },
-    phone: {
-      mobile: ["9876543210"],
-    },
-  },
-  {
-    id: "2",
-    name: "XYZ Distributors",
-    gstin: "27XYZAB5678C1Z3",
-    address: {
-      city: "Delhi",
-      state: "Delhi",
-    },
-    phone: {
-      mobile: ["8765432109"],
-    },
-  },
-  {
-    id: "3",
-    name: "PQR Enterprises",
-    gstin: "24PQRST9876U1Z2",
-    address: {
-      city: "Bangalore",
-      state: "Karnataka",
-    },
-    phone: {
-      mobile: ["7654321098"],
-    },
-  },
-]
+// Define TypeScript interfaces
+interface Address {
+  city: string;
+  state: string;
+}
+
+interface Phone {
+  mobile: string[];
+}
+
+interface Supplier {
+  id: string;
+  name: string;
+  gstin: string;
+  address: Address;
+  phone: Phone;
+}
 
 export default function SuppliersPage() {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [isLoading, setIsLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState<string>("")
+  const [isLoading, setIsLoading] = useState<boolean>(true)
+  const [suppliers, setSuppliers] = useState<Supplier[]>([])
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false)
+  const [supplierToDelete, setSupplierToDelete] = useState<Supplier | null>(null)
+  const [isMobileView, setIsMobileView] = useState<boolean>(false)
 
-  useEffect(() => {
-    const loadData = async () => {
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      setIsLoading(false)
-    }
-
-    loadData()
+  // Check if the screen is mobile size
+  const checkIfMobile = useCallback(() => {
+    setIsMobileView(window.innerWidth < 768)
   }, [])
 
+  useEffect(() => {
+    // Set initial value
+    checkIfMobile()
+    
+    // Add event listener for window resize
+    window.addEventListener('resize', checkIfMobile)
+    
+    // Remove event listener on cleanup
+    return () => window.removeEventListener('resize', checkIfMobile)
+  }, [checkIfMobile])
+
+  useEffect(() => {
+    fetchSuppliers()
+  }, [])
+
+  const fetchSuppliers = async (): Promise<void> => {
+    setIsLoading(true)
+    try {
+      const response = await fetch("/api/supplier")
+      
+      if (!response.ok) {
+        throw new Error("Failed to fetch suppliers")
+      }
+      
+      const data = await response.json()
+      setSuppliers(data.data || [])
+    } catch (error) {
+      console.error("Error fetching suppliers:", error)
+      toast({
+        title: "Error",
+        description: "Failed to load suppliers. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleDeleteClick = (supplier: Supplier): void => {
+    setSupplierToDelete(supplier)
+    setDeleteDialogOpen(true)
+  }
+
+  const confirmDelete = async (): Promise<void> => {
+    if (!supplierToDelete) return
+
+    setIsLoading(true)
+    try {
+      const response = await fetch(`/api/supplier/${supplierToDelete.id}`, {
+        method: "DELETE",
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to delete supplier")
+      }
+
+      // Remove deleted supplier from the list
+      setSuppliers(suppliers.filter(s => s.id !== supplierToDelete.id))
+      toast({
+        title: "Success",
+        description: `${supplierToDelete.name} has been deleted successfully.`,
+      })
+    } catch (error) {
+      console.error("Error deleting supplier:", error)
+      toast({
+        title: "Error",
+        description: "Failed to delete supplier. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setDeleteDialogOpen(false)
+      setSupplierToDelete(null)
+      setIsLoading(false)
+    }
+  }
+
   // Filter suppliers based on search term
-  const filteredSuppliers = mockSuppliers.filter(
-    (supplier) =>
-      supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      supplier.gstin.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      supplier.address.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      supplier.address.state.toLowerCase().includes(searchTerm.toLowerCase()),
+  const filteredSuppliers = suppliers.filter(
+    (supplier: Supplier) =>
+      supplier?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      supplier?.gstin?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      supplier?.address?.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      supplier?.address?.state?.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
   return (
@@ -105,33 +170,29 @@ export default function SuppliersPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>GSTIN</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Contact</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <Spinner className="text-primary" />
+            </div>
+          ) : filteredSuppliers.length === 0 ? (
+            <div className="text-center py-8">
+              No suppliers found.
+            </div>
+          ) : !isMobileView ? (
+            // Desktop view: Table
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={4} className="h-24 text-center">
-                      <div className="flex justify-center">
-                        <Spinner className="text-primary" />
-                      </div>
-                    </TableCell>
+                    <TableHead>Name</TableHead>
+                    <TableHead>GSTIN</TableHead>
+                    <TableHead>Location</TableHead>
+                    <TableHead>Contact</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ) : filteredSuppliers.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={4} className="h-24 text-center">
-                      No suppliers found.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredSuppliers.map((supplier) => (
+                </TableHeader>
+                <TableBody>
+                  {filteredSuppliers.map((supplier: Supplier) => (
                     <TableRow key={supplier.id}>
                       <TableCell className="font-medium">
                         <Link href={`/suppliers/${supplier.id}`} className="hover:underline">
@@ -139,16 +200,100 @@ export default function SuppliersPage() {
                         </Link>
                       </TableCell>
                       <TableCell>{supplier.gstin}</TableCell>
-                      <TableCell>{`${supplier.address.city}, ${supplier.address.state}`}</TableCell>
-                      <TableCell>{supplier.phone.mobile[0]}</TableCell>
+                      <TableCell>{`${supplier.address?.city || "N/A"}, ${supplier.address?.state || "N/A"}`}</TableCell>
+                      <TableCell>{supplier.phone?.mobile?.[0] || "N/A"}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button variant="outline" size="sm" asChild>
+                            <Link href={`/suppliers/${supplier.id}/edit`}>
+                              <Edit className="h-4 w-4" />
+                            </Link>
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => handleDeleteClick(supplier)}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </div>
+                      </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            // Mobile view: Cards
+            <div className="space-y-4">
+              {filteredSuppliers.map((supplier: Supplier) => (
+                <Card key={supplier.id} className="overflow-hidden">
+                  <CardHeader className="pb-2">
+                    <div className="flex flex-col justify-between">
+                      <Link href={`/suppliers/${supplier.id}`} className="hover:underline">
+                        <h3 className="text-lg font-bold">{supplier.name}</h3>
+                      </Link>
+                      <Badge variant="outline" className="text-xs w-fit">
+                        {supplier.gstin}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pb-2">
+                    <div className="grid gap-2">
+                      <div className="flex items-center gap-2 text-sm">
+                        <MapPin className="h-4 w-4 text-muted-foreground" />
+                        <span>{`${supplier.address?.city || "N/A"}, ${supplier.address?.state || "N/A"}`}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <Phone className="h-4 w-4 text-muted-foreground" />
+                        <span>{supplier.phone?.mobile?.[0] || "N/A"}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                  <CardFooter className="bg-muted/20 flex justify-end gap-2 py-2">
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={`/suppliers/${supplier.id}/edit`}>
+                        <Edit className="h-4 w-4 mr-1" />
+                        Edit
+                      </Link>
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="text-red-500 border-red-200 hover:bg-red-50" 
+                      onClick={() => handleDeleteClick(supplier)}
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Delete
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action will permanently delete the supplier{" "}
+              <span className="font-semibold">{supplierToDelete?.name}</span>. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-red-600 hover:bg-red-700"
+              onClick={confirmDelete}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

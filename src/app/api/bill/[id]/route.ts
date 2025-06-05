@@ -42,11 +42,35 @@ export async function DELETE(
 ){
     const billId = params.id;
     try{
-        const bill = await prisma.bill.delete({
+
+        const bill = await prisma.bill.findUnique({
             where : {
                 id : billId
             }
         });
+
+        if(!bill){
+            return NextResponse.json({
+                success : false,
+                message : "Bill not found",
+                status : 404
+            }, {
+                status : 404
+            })
+        }
+        // Delete all items associated with the bill
+        await prisma.billItem.deleteMany({
+            where : {
+                billId : billId
+            }
+        });
+        // Delete the bill
+        await prisma.bill.delete({
+            where : {
+                id : billId
+            }
+        });
+        // Return success response
         return NextResponse.json({
             success : true,
             data : bill,

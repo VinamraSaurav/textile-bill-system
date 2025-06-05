@@ -9,43 +9,43 @@ export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
   try {
-    const formData = await req.formData();
-    const billImage = formData.get('billImage') as File;
-    
-    if (!billImage) {
-      return NextResponse.json(
-        { error: 'No bill image provided' },
-        { status: 400 }
-      );
+    const formData = await req.json();
+    const base64Image = formData.billImage;
+
+    if (!base64Image) {
+      return NextResponse.json({
+        success: false,
+        message: 'No bill image provided',
+        status: 400,
+      }, { status: 400 });
     }
-    
-    // Save uploaded file to temp directory
-    const bytes = await billImage.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+
+    // Convert base64 to buffer
+    const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, '');
+    const buffer = Buffer.from(base64Data, 'base64');
+
+    // Save to temp file
     const tempDir = os.tmpdir();
-    const tempFilePath = path.join(tempDir, `${uuidv4()}-${billImage.name}`);
-    
+    const tempFilePath = path.join(tempDir, `${uuidv4()}.png`);
     fs.writeFileSync(tempFilePath, buffer);
-    
-    // Process the image directly with Gemini Vision instead of Tesseract OCR
+
+    // Process the image using Gemini
     const result = await processImageWithGemini(tempFilePath);
-    
+
     return NextResponse.json({
       success: true,
       status: 200,
       message: 'Bill processed successfully',
       data: result,
     }, { status: 200 });
+
   } catch (error: any) {
     console.error('Bill processing error:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        status: 500,
-        message: 'Failed to process bill image',
-        error: error.message,
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({
+      success: false,
+      status: 500,
+      message: 'Failed to process bill image',
+      error: error.message,
+    }, { status: 500 });
   }
 }

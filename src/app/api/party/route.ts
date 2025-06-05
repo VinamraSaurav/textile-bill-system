@@ -6,7 +6,8 @@ export async function GET() {
         const parties = await prisma.party.findMany({
             include: {
                 address: true,
-                phone: true
+                phone: true,
+                bills: true
             }
         });
         return NextResponse.json({
@@ -49,6 +50,54 @@ export async function POST(req: NextRequest) {
                 mobile
             }
         } = body;
+
+        // Validate required fields
+        if (!name || !gstin || !street || !state || !pincode || !mobile) {
+            return NextResponse.json({
+                success: false,
+                message: 'All fields are required',
+                status: 400
+            }, {
+                status: 400
+            });
+        }
+        // Validate GSTIN format
+        const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z][Z][0-9A-Z]$/;
+        if (!gstinRegex.test(gstin)) {
+            return NextResponse.json({
+                success: false,
+                message: 'Invalid GSTIN format',
+                status: 400
+            }, {
+                status: 400
+            });
+        }
+        // Validate phone number format
+        const phoneRegex = /^[0-9]{10}$/;
+        if (!phoneRegex.test(mobile)) {
+            return NextResponse.json({
+                success: false,
+                message: 'Invalid mobile number format',
+                status: 400
+            }, {
+                status: 400
+            });
+        }
+        // Check if party with the same GSTIN already exists
+        const existingParty = await prisma.party.findFirst({
+            where: {
+                gstin
+            }
+        });
+        if (existingParty) {
+            return NextResponse.json({
+                success: false,
+                message: 'Party with the same GSTIN already exists',
+                status: 400
+            }, {
+                status: 400
+            });
+        }
 
         // Step 1: Create Address
         const address = await prisma.address.create({
